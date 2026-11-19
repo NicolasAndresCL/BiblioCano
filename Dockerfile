@@ -2,7 +2,7 @@
 # BiblioCano · imagen de la aplicación (multi-stage: se compila con JDK + Maven, se ejecuta con JRE)
 
 # ---------------------------------------------------------------- build
-FROM maven:3.9.9-eclipse-temurin-21 AS builder
+FROM maven:3.9-eclipse-temurin-26 AS builder
 WORKDIR /build
 # Primero solo el pom: si el código cambia pero las dependencias no, esta capa queda en caché
 COPY pom.xml .
