@@ -12,7 +12,7 @@ COPY src ./src
 RUN mvn -B -ntp -DskipTests package
 
 # ---------------------------------------------------------------- runtime
-FROM eclipse-temurin:21-jre-alpine AS runtime
+FROM eclipse-temurin:25-jre-alpine AS runtime
 RUN addgroup -S app && adduser -S -G app app
 WORKDIR /app
 COPY --from=builder --chown=app:app /build/target/bibliocano.jar ./bibliocano.jar
