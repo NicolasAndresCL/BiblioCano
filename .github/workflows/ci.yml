@@ -21,7 +21,7 @@ jobs:
     name: Compilar (-Xlint:all -Werror)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -33,7 +33,7 @@ jobs:
     name: Diagramas PlantUML válidos
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Renderizar todos los .puml (falla si alguno tiene error de sintaxis)
         run: |
           mkdir -p /tmp/png
@@ -68,7 +68,7 @@ jobs:
       BIBLIOCANO_DB_PASSWORD: bibliocano
       TZ: America/Santiago
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -93,7 +93,7 @@ jobs:
     needs: [pruebas]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Construir la imagen
         run: docker compose build demo
       - name: Correr la demo contra PostgreSQL (falla si algún escenario no termina como se espera)
