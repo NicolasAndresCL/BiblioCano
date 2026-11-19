@@ -1,0 +1,73 @@
+# ===================================================================================================
+# BiblioCano · entorno local con Docker (no hace falta instalar Java, Maven ni PostgreSQL)
+#
+#   docker compose up -d --wait db                 PostgreSQL con datos de ejemplo en localhost:5433
+#   docker compose run --rm pruebas                compila y corre TODAS las pruebas (incluida integración)
+#   docker compose run --rm --build demo           demostración por consola contra PostgreSQL
+#   docker compose down                            baja todo (conserva los datos)
+#   docker compose down -v                         baja todo y BORRA los datos (vuelven los de ejemplo)
+#
+# Puerto 5433 en el equipo (5432 suele estar ocupado por un PostgreSQL local). La interfaz Swing se
+# corre desde IntelliJ y se conecta a ese puerto (ver README, «Abrir en IntelliJ»).
+# ===================================================================================================
+name: bibliocano
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: bibliocano
+      POSTGRES_USER: bibliocano
+      # contraseña de desarrollo, sin secretos reales: la base solo tiene datos de ejemplo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bibliocano}
+      TZ: America/Santiago
+    ports:
+      - "${BIBLIOCANO_DB_PUERTO:-5433}:5432"
+    volumes:
+      - datos_postgres:/var/lib/postgresql/data
+      # el esquema y los datos de ejemplo se cargan solos la primera vez que se crea el volumen
+      - ./src/main/resources/db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # -h 127.0.0.1 (TCP): durante la inicialización solo responde el socket local, no TCP
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U bibliocano -d bibliocano"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  # Compila y corre las pruebas dentro de un contenedor con Maven y Java 21.
+  pruebas:
+    image: maven:3.9.9-eclipse-temurin-21
+    profiles: ["herramientas"]
+    working_dir: /proyecto
+    command: ["mvn", "-B", "-ntp", "verify"]
+    environment:
+      BIBLIOCANO_DB_URL: jdbc:postgresql://db:5432/bibliocano
+      BIBLIOCANO_DB_USUARIO: bibliocano
+      BIBLIOCANO_DB_PASSWORD: ${POSTGRES_PASSWORD:-bibliocano}
+      TZ: America/Santiago
+    volumes:
+      - ./:/proyecto
+      # dependencias de Maven en un volumen: se descargan una vez y no cruzan el disco de Windows
+      - repositorio_maven:/root/.m2
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # La aplicación empaquetada (Dockerfile). Sin pantalla, así que corre la demo por consola.
+  demo:
+    build: .
+    image: bibliocano:local
+    profiles: ["herramientas"]
+    command: ["demo"]
+    environment:
+      BIBLIOCANO_DB_URL: jdbc:postgresql://db:5432/bibliocano
+      BIBLIOCANO_DB_USUARIO: bibliocano
+      BIBLIOCANO_DB_PASSWORD: ${POSTGRES_PASSWORD:-bibliocano}
+      TZ: America/Santiago
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  datos_postgres:
+  repositorio_maven:

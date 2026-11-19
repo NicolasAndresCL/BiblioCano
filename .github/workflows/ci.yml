@@ -1,0 +1,105 @@
+name: CI
+
+# Verifica que BiblioCano construye, pasa sus pruebas contra PostgreSQL real y arranca empaquetado.
+# Orden rápido → lento: compilar con warnings como error y validar diagramas, luego pruebas con
+# cobertura, y al final la imagen Docker corriendo la demo. scripts/verificar.ps1 reproduce lo mismo.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compilar:
+    name: Compilar (-Xlint:all -Werror)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - run: mvn -B -ntp -DskipTests test-compile
+
+  diagramas:
+    name: Diagramas PlantUML válidos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Renderizar todos los .puml (falla si alguno tiene error de sintaxis)
+        run: |
+          mkdir -p /tmp/png
+          docker run --rm -v "$PWD/docs/diagramas/fuentes:/fuentes:ro" -v /tmp/png:/salida \
+            plantuml/plantuml:1.2025.4 -failfast2 -tpng -o /salida "/fuentes/*.puml"
+          ls /tmp/png
+          test "$(ls /tmp/png/*.png | wc -l)" -eq "$(ls docs/diagramas/fuentes/*.puml | wc -l)"
+
+  pruebas:
+    name: Pruebas + cobertura (PostgreSQL 17)
+    needs: [compilar]
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: bibliocano
+          POSTGRES_USER: bibliocano
+          POSTGRES_PASSWORD: bibliocano
+          # misma zona que la JVM: CURRENT_DATE de los datos de ejemplo y LocalDate.now() deben coincidir
+          TZ: America/Santiago
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bibliocano"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      BIBLIOCANO_DB_URL: jdbc:postgresql://localhost:5432/bibliocano
+      BIBLIOCANO_DB_USUARIO: bibliocano
+      BIBLIOCANO_DB_PASSWORD: bibliocano
+      TZ: America/Santiago
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: mvn verify (pruebas unitarias, integración y umbral de cobertura)
+        run: mvn -B -ntp verify
+      - name: Las pruebas de integración corrieron de verdad (no quedaron omitidas)
+        run: |
+          informe=target/surefire-reports/TEST-cl.bibliocano.persistencia.JdbcIntegracionTest.xml
+          grep -q 'skipped="0"' "$informe" || { echo "::error::JdbcIntegracionTest quedó omitida"; exit 1; }
+      - name: Guardar informe de cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cobertura-jacoco
+          path: target/site/jacoco/
+          retention-days: 14
+
+  imagen:
+    name: Imagen Docker + demo por consola
+    needs: [pruebas]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Construir la imagen
+        run: docker compose build demo
+      - name: Correr la demo contra PostgreSQL (falla si algún escenario no termina como se espera)
+        run: |
+          docker compose up -d --wait db
+          docker compose run --rm demo
+      - name: Bajar el entorno
+        if: always()
+        run: docker compose down -v

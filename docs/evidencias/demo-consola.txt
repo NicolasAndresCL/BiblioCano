@@ -1,0 +1,63 @@
+# Salida de: docker compose run --rm demo   (imagen bibliocano:local contra PostgreSQL 17, 19/11/2026)
+
+==============================================================
+ BiblioCano 0.2.0 · demostración por consola
+ Persistencia: PostgreSQL (jdbc:postgresql://db:5432/bibliocano)
+==============================================================
+
+ 1. Iniciar sesión con contraseña incorrecta
+    esperado: CredencialesInvalidasException
+   [OK]    rechazado: Usuario o contraseña incorrectos
+
+ 2. Iniciar sesión con credenciales válidas
+    esperado: éxito
+   [OK]    Sesión iniciada: Ana Rojas (bibliotecaria)
+
+ 3. Consultar catálogo: «clean»
+    esperado: éxito
+   [OK]    Clean Code: 1 de 2 ejemplares disponibles
+
+--- Registrar préstamo (funcionalidad central) ---
+
+ 4. Préstamo a socio habilitado de ejemplar disponible
+    esperado: éxito
+   [OK]    Préstamo N.º 2: Clean Code a Camila Fuentes, devolver a más tardar el 2026-12-03
+
+ 5. Prestar un ejemplar que ya está prestado
+    esperado: EjemplarNoDisponibleException
+   [OK]    rechazado: El ejemplar EJ-0002 no está disponible (estado PRESTADO)
+
+ 6. Prestar un ejemplar en mantenimiento
+    esperado: EjemplarNoDisponibleException
+   [OK]    rechazado: El ejemplar EJ-0004 no está disponible (estado MANTENIMIENTO)
+
+ 7. Prestar a un socio con multa impaga
+    esperado: SocioInhabilitadoException
+   [OK]    rechazado: El socio Diego Morales tiene una multa impaga: no puede recibir otro préstamo
+
+ 8. Prestar a un socio con un préstamo vencido
+    esperado: SocioInhabilitadoException
+   [OK]    rechazado: El socio Valentina Soto tiene un préstamo vencido: no puede recibir otro préstamo
+
+ 9. Prestar a un socio que no existe
+    esperado: RecursoNoEncontradoException
+   [OK]    rechazado: No existe el socio 99
+
+--- Registrar devolución (extiende: calcular multa) ---
+
+10. Devolución con 6 días de atraso
+    esperado: éxito
+   [OK]    Multa de $3.000; Valentina Soto queda con multa impaga
+
+11. Devolución dentro del plazo
+    esperado: éxito
+   [OK]    Multa de $0; el ejemplar vuelve a estar DISPONIBLE
+
+12. Devolver un ejemplar sin préstamo activo
+    esperado: RecursoNoEncontradoException
+   [OK]    rechazado: El ejemplar EJ-0003 no tiene un préstamo activo
+
+==============================================================
+ Resultado: los 12 escenarios terminaron como se esperaba.
+==============================================================
+

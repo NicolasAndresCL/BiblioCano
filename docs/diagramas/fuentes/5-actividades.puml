@@ -1,0 +1,36 @@
+@startuml 5-actividades
+' BiblioCano v0.2.0 · Diagrama de actividades: «Registrar préstamo de libro»
+' Base: diagrama del avance (19/11). Agrega la validación del socio y las calles (C13).
+!theme plain
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+title Diagrama de actividades — Registrar préstamo de libro
+
+|Bibliotecario|
+start
+:Recibir la solicitud del socio en el mesón;
+:Ingresar ID del socio y código de barras;
+|Sistema|
+:Buscar socio y ejemplar;
+if (¿Existen ambos?) then (no)
+  :Informar «socio o ejemplar inexistente»;
+elseif (¿Socio habilitado?\n(sin multa impaga ni préstamo vencido)) then (no)
+  :Rechazar: socio inhabilitado\n(indicar el motivo);
+elseif (¿Ejemplar disponible?) then (no)
+  :Rechazar: ejemplar prestado\no en mantenimiento;
+else (sí)
+  :Crear préstamo\n(fecha límite = hoy + 14 días);
+  :Marcar ejemplar como PRESTADO;
+  :Guardar préstamo en una transacción;
+  if (¿La base aceptó el préstamo?) then (sí)
+    |Bibliotecario|
+    :Entregar libro y comprobante al socio;
+  else (no: otro bibliotecario\nlo prestó antes)
+    |Sistema|
+    :Rechazar: ejemplar no disponible;
+  endif
+endif
+|Bibliotecario|
+stop
+@enduml
