@@ -25,7 +25,9 @@ param(
     [switch]$ArbolDeTrabajo
 )
 
-$ErrorActionPreference = 'Stop'
+# 'Continue' y no 'Stop': Docker escribe su progreso en stderr, y en Windows PowerShell 5.1 eso se
+# convierte en un error que, con 'Stop', aborta el script. El éxito se decide por $LASTEXITCODE.
+$ErrorActionPreference = 'Continue'
 $raiz = Split-Path -Parent $PSScriptRoot
 $proyecto = 'bibliocano-verificar'
 $plantuml = 'plantuml/plantuml:1.2025.4'
@@ -88,9 +90,9 @@ try {
 } finally {
     Write-Host ""
     Write-Host "Bajando el entorno de verificación ($proyecto)..."
-    docker compose down --remove-orphans 2>$null | Out-Null
+    docker compose down --remove-orphans *> $null
     # Se borra la base de prueba; el volumen de Maven se conserva para no re-descargar dependencias
-    docker volume rm "${proyecto}_datos_postgres" 2>$null | Out-Null
+    docker volume rm "${proyecto}_datos_postgres" *> $null
     Pop-Location
     Remove-Item Env:COMPOSE_PROJECT_NAME, Env:BIBLIOCANO_DB_PUERTO -ErrorAction SilentlyContinue
     if (-not $ArbolDeTrabajo) {
