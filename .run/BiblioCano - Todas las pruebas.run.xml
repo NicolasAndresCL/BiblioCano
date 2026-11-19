@@ -1,0 +1,20 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="BiblioCano - Todas las pruebas" type="JUnit" factoryName="JUnit">
+    <module name="bibliocano" />
+    <option name="PACKAGE_NAME" value="cl.bibliocano" />
+    <option name="MAIN_CLASS_NAME" value="" />
+    <option name="METHOD_NAME" value="" />
+    <option name="TEST_OBJECT" value="package" />
+    <option name="VM_PARAMETERS" value="-ea" />
+    <envs>
+      <!-- con esta variable también corren las pruebas de integración contra el PostgreSQL de Docker -->
+      <env name="BIBLIOCANO_DB_URL" value="jdbc:postgresql://localhost:5433/bibliocano" />
+    </envs>
+    <option name="TEST_SEARCH_SCOPE">
+      <value defaultName="singleModule" />
+    </option>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

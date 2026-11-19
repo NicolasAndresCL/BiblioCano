@@ -1,0 +1,12 @@
+.git/
+.github/
+.idea/
+.run/
+*.iml
+target/
+build/
+docs/
+scripts/
+.env
+.env.*
+*.md

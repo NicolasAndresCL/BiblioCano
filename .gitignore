@@ -22,3 +22,9 @@ docs/diagramas/png/*.tmp
 .DS_Store
 Thumbs.db
 ~$*
+
+# Documentación personal (no versionada, ver CLAUDE.md global)
+CLAUDE.md
+memory.md
+aprendizaje.md
+pendientes.md
