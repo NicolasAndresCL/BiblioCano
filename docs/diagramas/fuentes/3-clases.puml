@@ -1,0 +1,120 @@
+@startuml 3-clases
+' BiblioCano v0.2.0 · Diagrama de clases del dominio (paquete cl.bibliocano.dominio)
+' Base: diagrama de Matías Toro (avance 19/11). Cambios en docs/control-de-cambios.md (C3 a C7).
+' Contrato: cada atributo y firma coincide con src/main/java/cl/bibliocano/dominio/*.java
+!theme plain
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+skinparam classAttributeIconSize 0
+skinparam nodesep 60
+skinparam ranksep 70
+hide empty members
+title Diagrama de clases — dominio de BiblioCano
+
+class Bibliotecario {
+  -idBibliotecario : int
+  -nombre : String
+  -usuario : String
+  -hashPassword : String
+  +autenticar(password : String) : boolean
+  +registrarPrestamo(socio : Socio, ejemplar : Ejemplar, hoy : LocalDate) : Prestamo
+  +registrarDevolucion(prestamo : Prestamo, hoy : LocalDate) : int
+}
+
+class Socio {
+  -idSocio : int
+  -rut : String
+  -nombre : String
+  -correo : String
+  -tieneMulta : boolean
+  +validarEstado(hoy : LocalDate) : boolean
+  +tienePrestamosVencidos(hoy : LocalDate) : boolean
+  +registrarMulta() : void
+  ~agregarPrestamo(prestamo : Prestamo) : void
+  ~quitarPrestamo(prestamo : Prestamo) : void
+}
+
+class Prestamo {
+  {static} +DIAS_PLAZO : int = 14
+  {static} +MULTA_POR_DIA : int = 500
+  -idPrestamo : int
+  -fechaPrestamo : LocalDate
+  -fechaDevolucionEsperada : LocalDate
+  -fechaDevolucionReal : LocalDate
+  -estado : EstadoPrestamo
+  -multa : int
+  ~Prestamo(socio : Socio, ejemplar : Ejemplar, bibliotecario : Bibliotecario, fechaPrestamo : LocalDate)
+  +calcularMulta(fechaEntrega : LocalDate) : int
+  +estaVencido(hoy : LocalDate) : boolean
+  +finalizarPrestamo(fechaEntrega : LocalDate) : void
+  +asignarId(id : int) : void
+}
+
+class Libro {
+  -isbn : String
+  -titulo : String
+  -autor : String
+  -categoria : String
+  +agregarEjemplar(codigoBarra : String, ubicacion : String) : Ejemplar
+  +obtenerEjemplaresDisponibles() : List<Ejemplar>
+}
+
+class Ejemplar {
+  -codigoBarra : String
+  -ubicacion : String
+  -estado : EstadoEjemplar
+  ~Ejemplar(codigoBarra : String, ubicacion : String, libro : Libro)
+  +estaDisponible() : boolean
+  +cambiarEstado(nuevoEstado : EstadoEjemplar) : void
+}
+
+enum EstadoEjemplar <<enumeration>> {
+  DISPONIBLE
+  PRESTADO
+  MANTENIMIENTO
+}
+
+enum EstadoPrestamo <<enumeration>> {
+  ACTIVO
+  DEVUELTO
+}
+
+abstract class BibliotecaException {
+  #BibliotecaException(mensaje : String)
+}
+class SocioInhabilitadoException
+class EjemplarNoDisponibleException
+class RecursoNoEncontradoException
+class CredencialesInvalidasException
+
+' ---------------------------------------------------------------- relaciones
+Bibliotecario "1 -bibliotecario" <-- "0..*" Prestamo : registra <
+Socio "1 -socio" -- "0..* -prestamosActivos" Prestamo : solicita >
+Prestamo "0..*" --> "1 -ejemplar" Ejemplar : asigna >
+Libro "1 -libro" *-- "0..* -ejemplares" Ejemplar : posee >
+
+Ejemplar ..> EstadoEjemplar
+Prestamo ..> EstadoPrestamo
+
+BibliotecaException <|-- SocioInhabilitadoException
+BibliotecaException <|-- EjemplarNoDisponibleException
+BibliotecaException <|-- RecursoNoEncontradoException
+BibliotecaException <|-- CredencialesInvalidasException
+Bibliotecario ..> SocioInhabilitadoException : <<lanza>>
+Bibliotecario ..> EjemplarNoDisponibleException : <<lanza>>
+
+note bottom of Libro
+  Composición: solo Libro crea Ejemplar
+  (constructor ~ de paquete). 0..*: un título
+  puede estar sin copias.
+end note
+
+note top of Prestamo
+  Solo Bibliotecario.registrarPrestamo lo crea,
+  después de validar al socio y al ejemplar.
+  «Vencido» se calcula (estaVencido), no se guarda.
+end note
+
+note "Los extremos de asociación llevan el nombre del\natributo que los implementa (-ejemplares, -socio...).\nGetters, equals, hashCode y toString omitidos. BibliotecaException hereda de\nRuntimeException (no comprobada)." as N1
+@enduml

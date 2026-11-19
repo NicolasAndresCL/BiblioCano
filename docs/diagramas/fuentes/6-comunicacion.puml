@@ -1,0 +1,41 @@
+@startuml 6-comunicacion
+' BiblioCano v0.2.0 · Diagrama de comunicación: «Registrar préstamo de libro» (escenario exitoso)
+' Mismos objetos y numeración que el diagrama de secuencia (C14). En PlantUML se dibuja con objetos y
+' enlaces: cada enlace lleva los mensajes que viajan por él y la flecha indica su sentido.
+!theme plain
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+allowmixing
+left to right direction
+title Diagrama de comunicación — Registrar préstamo de libro (escenario exitoso)
+
+actor "Bibliotecario" as A
+object ":VentanaPrincipal" as UI
+object ":ServicioPrestamos" as SP
+object ":RepositorioSocios" as RS
+object ":RepositorioEjemplares" as RE
+object ":RepositorioPrestamos" as RP
+object "b : Bibliotecario" as B
+object "s : Socio" as S
+object "e : Ejemplar" as E
+object "p : Prestamo" as P
+
+A -- UI : "1: registrarPrestamo(idSocio, codigoBarra) >"
+UI -- SP : "1.1: registrarPrestamo(b, idSocio, codigoBarra) >"
+SP -- RS : "1.1.1: s := buscarPorId(idSocio) >"
+SP -- RE : "1.1.2: e := buscarPorCodigo(codigoBarra) >"
+SP -- B : "1.1.3: p := registrarPrestamo(s, e, hoy) >"
+SP -- RP : "1.1.4: registrar(p) >"
+B -- S : "1.1.3.1: validarEstado(hoy) >"
+B -- E : "1.1.3.2: estaDisponible() >\n1.1.3.4: cambiarEstado(PRESTADO) >"
+B -- P : "1.1.3.3 [habilitado y disponible]: <<create>> >"
+P -- S : "1.1.3.3.1: agregarPrestamo(p) >"
+
+note bottom of P
+  Los rechazos (socio inhabilitado, ejemplar no
+  disponible, inexistente) se ven en el diagrama
+  de secuencia (fragmentos alt) y en el de
+  actividades: aquí se muestra un solo escenario.
+end note
+@enduml

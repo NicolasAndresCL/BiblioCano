@@ -1,0 +1,81 @@
+@startuml 2-modelo-de-datos
+' BiblioCano v0.2.0 · Modelo de datos (entidad-relación, notación pata de gallo)
+' Base: modelo de Matías Toro (avance 19/11). Cambios en docs/control-de-cambios.md (C8 a C11).
+' Implementación exacta: src/main/resources/db/01-esquema.sql
+!theme plain
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+skinparam linetype ortho
+hide circle
+title Modelo de datos — BiblioCano (PostgreSQL)
+
+entity "BIBLIOTECARIO" as bibliotecario {
+  * **id_bibliotecario** : INT <<PK>>
+  --
+  * nombre : VARCHAR(100)
+  * usuario : VARCHAR(50) <<UQ>>
+  * password_hash : VARCHAR(255)
+}
+
+entity "SOCIO" as socio {
+  * **id_socio** : INT <<PK>>
+  --
+  * rut : VARCHAR(12) <<UQ>>
+  * nombre : VARCHAR(100)
+  * correo : VARCHAR(100)
+  * tiene_multa : BOOLEAN
+}
+
+entity "LIBRO" as libro {
+  * **isbn** : VARCHAR(20) <<PK>>
+  --
+  * titulo : VARCHAR(150)
+  * autor : VARCHAR(100)
+  * categoria : VARCHAR(50)
+}
+
+entity "EJEMPLAR" as ejemplar {
+  * **codigo_barra** : VARCHAR(30) <<PK>>
+  --
+  * isbn : VARCHAR(20) <<FK>>
+  * ubicacion : VARCHAR(50)
+  * estado : VARCHAR(20) <<CHECK>>
+}
+
+entity "PRESTAMO" as prestamo {
+  * **id_prestamo** : INT <<PK>>
+  --
+  * id_bibliotecario : INT <<FK>>
+  * id_socio : INT <<FK>>
+  * codigo_barra : VARCHAR(30) <<FK>>
+  * fecha_prestamo : DATE
+  * fecha_devolucion_esperada : DATE
+    fecha_devolucion_real : DATE
+  * estado : VARCHAR(20) <<CHECK>>
+  * multa : INTEGER
+}
+
+libro ||--o{ ejemplar : tiene
+bibliotecario ||--o{ prestamo : registra
+socio ||--o{ prestamo : solicita
+ejemplar ||--o{ prestamo : "se asigna en"
+
+note bottom of prestamo
+  estado IN ('ACTIVO', 'DEVUELTO')    multa >= 0 (pesos enteros)
+  ACTIVO ⇔ fecha_devolucion_real IS NULL
+  Índice único parcial: un solo préstamo ACTIVO por codigo_barra
+end note
+
+note right of ejemplar
+  estado: DISPONIBLE, PRESTADO
+  o MANTENIMIENTO (CHECK)
+  ON DELETE CASCADE desde LIBRO
+end note
+
+note left of bibliotecario
+  círculo junto al campo = NOT NULL
+  PK clave primaria · FK clave foránea
+  UQ único · CHECK valores permitidos
+end note
+@enduml

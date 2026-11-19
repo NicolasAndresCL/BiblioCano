@@ -1,0 +1,84 @@
+@startuml 3b-capas
+' BiblioCano v0.2.0 · Clases de servicio y persistencia (complementa el diagrama de clases del dominio)
+' Muestra la inversión de dependencias: el servicio depende de interfaces que la persistencia implementa.
+!theme plain
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+skinparam classAttributeIconSize 0
+hide empty members
+set separator none
+title Diagrama de clases — servicios, repositorios y presentación
+
+package "cl.bibliocano.ui / consola (presentación)" {
+  class VentanaPrincipal
+  class DemoConsola
+}
+
+package "cl.bibliocano.servicio" {
+  class ServicioPrestamos {
+    -reloj : Clock
+    +registrarPrestamo(bibliotecario : Bibliotecario, idSocio : int, codigoBarra : String) : Prestamo
+    +registrarDevolucion(bibliotecario : Bibliotecario, codigoBarra : String) : Prestamo
+  }
+  class ServicioCatalogo {
+    +buscar(texto : String) : List<Libro>
+  }
+  class ServicioAcceso {
+    +iniciarSesion(usuario : String, password : String) : Bibliotecario
+  }
+  interface RepositorioSocios <<interface>> {
+    +buscarPorId(idSocio : int) : Optional<Socio>
+  }
+  interface RepositorioEjemplares <<interface>> {
+    +buscarPorCodigo(codigoBarra : String) : Optional<Ejemplar>
+  }
+  interface RepositorioPrestamos <<interface>> {
+    +registrar(prestamo : Prestamo) : void
+    +buscarActivoPorEjemplar(codigoBarra : String) : Optional<Prestamo>
+    +registrarDevolucion(prestamo : Prestamo) : void
+  }
+  interface RepositorioLibros <<interface>> {
+    +buscar(texto : String) : List<Libro>
+  }
+  interface RepositorioBibliotecarios <<interface>> {
+    +buscarPorUsuario(usuario : String) : Optional<Bibliotecario>
+  }
+}
+
+package "cl.bibliocano.persistencia" {
+  class BibliotecaPostgres {
+    -conexionBD : ConexionBD
+  }
+  class BibliotecaEnMemoria
+}
+
+package "cl.bibliocano.dominio" {
+  class Bibliotecario
+}
+
+VentanaPrincipal --> "1" ServicioPrestamos
+DemoConsola --> "1" ServicioPrestamos
+ServicioPrestamos --> "1" RepositorioSocios
+ServicioPrestamos --> "1" RepositorioEjemplares
+ServicioPrestamos --> "1" RepositorioPrestamos
+ServicioCatalogo --> "1" RepositorioLibros
+ServicioAcceso --> "1" RepositorioBibliotecarios
+ServicioPrestamos ..> Bibliotecario : registrarPrestamo()
+
+RepositorioSocios <|.. BibliotecaPostgres
+RepositorioEjemplares <|.. BibliotecaPostgres
+RepositorioPrestamos <|.. BibliotecaPostgres
+RepositorioLibros <|.. BibliotecaPostgres
+RepositorioBibliotecarios <|.. BibliotecaPostgres
+RepositorioSocios <|.. BibliotecaEnMemoria
+RepositorioEjemplares <|.. BibliotecaEnMemoria
+RepositorioPrestamos <|.. BibliotecaEnMemoria
+RepositorioLibros <|.. BibliotecaEnMemoria
+RepositorioBibliotecarios <|.. BibliotecaEnMemoria
+
+note bottom of BibliotecaEnMemoria
+  Pruebas unitarias y modo «memoria»
+  (sin Docker). Contexto elige cuál usar.
+end note
+@enduml
